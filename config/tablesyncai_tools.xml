@@ -1,0 +1,401 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- TableSyncAI Tools Definition -->
+<!-- This file defines the custom tools available for TableSyncAI natural language interface -->
+
+<tools>
+  <!-- Tool 1: Sync Status Search -->
+  <tool name="sync_status_search">
+    <description>
+      Search for synchronization jobs by status, time range, or entity type.
+      Use this tool when users ask about sync job status, recent syncs, or specific jobs.
+      Examples: "show failed syncs", "what syncs ran today", "status of customer sync"
+    </description>
+    
+    <parameters>
+      <param name="entity_type" type="string" required="false">
+        <description>Type of entity to search for</description>
+        <options>
+          <option value="table">Individual table synchronization</option>
+          <option value="database">Entire database synchronization</option>
+          <option value="job">Specific sync job by name or ID</option>
+          <option value="schedule">Scheduled sync jobs</option>
+          <option value="all">All entity types (default)</option>
+        </options>
+      </param>
+      
+      <param name="status" type="string" required="false">
+        <description>Status filter for sync jobs</description>
+        <options>
+          <option value="success">Successfully completed syncs</option>
+          <option value="failed">Failed syncs requiring attention</option>
+          <option value="pending">Queued but not yet started</option>
+          <option value="running">Currently executing syncs</option>
+          <option value="cancelled">User-cancelled syncs</option>
+          <option value="all">All statuses (default)</option>
+        </options>
+      </param>
+      
+      <param name="time_range" type="string" required="false">
+        <description>Time period to search within</description>
+        <examples>
+          <example>today</example>
+          <example>yesterday</example>
+          <example>last 7 days</example>
+          <example>last week</example>
+          <example>last month</example>
+          <example>2025-10-28</example>
+          <example>2025-10-01 to 2025-10-28</example>
+        </examples>
+      </param>
+      
+      <param name="entity_name" type="string" required="false">
+        <description>Name of specific table, database, or job</description>
+      </param>
+      
+      <param name="source_system" type="string" required="false">
+        <description>Source system filter (e.g., PostgreSQL, MySQL, Salesforce)</description>
+      </param>
+      
+      <param name="target_system" type="string" required="false">
+        <description>Target system filter (e.g., Snowflake, BigQuery, Redshift)</description>
+      </param>
+    </parameters>
+    
+    <return_schema type="SyncJob">
+      <field name="@type">SyncJob</field>
+      <field name="identifier">Unique job ID</field>
+      <field name="name">Human-readable job name</field>
+      <field name="status">Current status</field>
+      <field name="startTime">ISO 8601 timestamp</field>
+      <field name="endTime">ISO 8601 timestamp</field>
+      <field name="recordsProcessed">Total records</field>
+      <field name="recordsFailed">Failed records</field>
+      <field name="sourceDatabase">Source database info</field>
+      <field name="targetDatabase">Target database info</field>
+      <field name="errors">Array of error objects</field>
+    </return_schema>
+  </tool>
+
+  <!-- Tool 2: Sync Configuration Query -->
+  <tool name="sync_configuration_query">
+    <description>
+      Retrieve configuration details for sync jobs, connections, mappings, or schedules.
+      Use when users ask "how is X configured", "what's my schedule for Y", "show connection settings".
+    </description>
+    
+    <parameters>
+      <param name="config_type" type="string" required="true">
+        <description>Type of configuration to retrieve</description>
+        <options>
+          <option value="connection">Database connection settings</option>
+          <option value="mapping">Table/field mapping configuration</option>
+          <option value="schedule">Sync schedule and timing</option>
+          <option value="transform">Data transformation rules</option>
+          <option value="filter">Row filtering rules</option>
+          <option value="notification">Alert and notification settings</option>
+        </options>
+      </param>
+      
+      <param name="entity_name" type="string" required="false">
+        <description>Name of table, database, or job to get config for</description>
+      </param>
+      
+      <param name="include_credentials" type="boolean" required="false" default="false">
+        <description>Whether to include sensitive credentials (requires admin permission)</description>
+      </param>
+    </parameters>
+    
+    <return_schema type="SyncConfiguration">
+      <field name="@type">SyncConfiguration</field>
+      <field name="configType">Type of configuration</field>
+      <field name="entityName">Associated entity</field>
+      <field name="settings">Configuration settings object</field>
+      <field name="lastModified">ISO 8601 timestamp</field>
+      <field name="modifiedBy">User who last modified</field>
+    </return_schema>
+  </tool>
+
+  <!-- Tool 3: Error Analysis -->
+  <tool name="error_analysis">
+    <description>
+      Analyze and explain synchronization errors with suggested fixes.
+      Use when users ask "why did X fail", "explain error code", "how to fix this error".
+    </description>
+    
+    <parameters>
+      <param name="error_id" type="string" required="false">
+        <description>Specific error ID to analyze</description>
+      </param>
+      
+      <param name="error_code" type="string" required="false">
+        <description>Error code (e.g., ERR_TIMEOUT_001, ERR_CONSTRAINT_VIOLATION)</description>
+      </param>
+      
+      <param name="job_id" type="string" required="false">
+        <description>Job ID to analyze errors from</description>
+      </param>
+      
+      <param name="severity" type="string" required="false">
+        <description>Filter by error severity</description>
+        <options>
+          <option value="critical">Critical errors stopping sync</option>
+          <option value="error">Errors affecting data quality</option>
+          <option value="warning">Warnings that should be reviewed</option>
+          <option value="info">Informational messages</option>
+        </options>
+      </param>
+      
+      <param name="include_suggested_fixes" type="boolean" required="false" default="true">
+        <description>Include suggested remediation steps</description>
+      </param>
+    </parameters>
+    
+    <return_schema type="SyncError">
+      <field name="@type">SyncError</field>
+      <field name="errorCode">Error code identifier</field>
+      <field name="errorType">Classification of error</field>
+      <field name="message">Human-readable error message</field>
+      <field name="severity">Critical, error, warning, or info</field>
+      <field name="timestamp">When error occurred</field>
+      <field name="affectedRecords">Number of records affected</field>
+      <field name="explanation">Detailed explanation in plain English</field>
+      <field name="possibleCauses">Array of potential root causes</field>
+      <field name="suggestedFixes">Array of recommended actions</field>
+      <field name="documentationLink">Link to relevant docs</field>
+    </return_schema>
+  </tool>
+
+  <!-- Tool 4: Performance Metrics -->
+  <tool name="performance_metrics">
+    <description>
+      Retrieve performance metrics, statistics, and trends for sync operations.
+      Use for questions about "sync speed", "performance", "throughput", "how long does X take".
+    </description>
+    
+    <parameters>
+      <param name="metric_type" type="string" required="true">
+        <description>Type of metric to retrieve</description>
+        <options>
+          <option value="throughput">Records per second/minute/hour</option>
+          <option value="latency">Sync duration and timing</option>
+          <option value="success_rate">Success vs failure rates</option>
+          <option value="data_volume">Amount of data transferred</option>
+          <option value="resource_usage">CPU, memory, network usage</option>
+          <option value="cost">Estimated operational costs</option>
+        </options>
+      </param>
+      
+      <param name="entity_name" type="string" required="false">
+        <description>Specific entity to get metrics for</description>
+      </param>
+      
+      <param name="time_range" type="string" required="false" default="last 7 days">
+        <description>Time period for metrics</description>
+      </param>
+      
+      <param name="aggregation" type="string" required="false" default="daily">
+        <description>How to aggregate the data</description>
+        <options>
+          <option value="hourly">Hour-by-hour breakdown</option>
+          <option value="daily">Day-by-day breakdown</option>
+          <option value="weekly">Week-by-week breakdown</option>
+          <option value="monthly">Month-by-month breakdown</option>
+          <option value="summary">Overall summary statistics</option>
+        </options>
+      </param>
+      
+      <param name="include_trends" type="boolean" required="false" default="true">
+        <description>Include trend analysis and predictions</description>
+      </param>
+    </parameters>
+    
+    <return_schema type="PerformanceMetrics">
+      <field name="@type">PerformanceMetrics</field>
+      <field name="metricType">Type of metric</field>
+      <field name="entityName">Entity measured</field>
+      <field name="timeRange">Time period covered</field>
+      <field name="dataPoints">Array of metric values over time</field>
+      <field name="summary">Summary statistics (avg, min, max, p95, p99)</field>
+      <field name="trend">Trend analysis (improving, declining, stable)</field>
+      <field name="recommendations">Performance improvement suggestions</field>
+    </return_schema>
+  </tool>
+
+  <!-- Tool 5: Data Lineage -->
+  <tool name="data_lineage">
+    <description>
+      Trace data lineage, dependencies, and impact analysis for tables and fields.
+      Use for "where does X come from", "what depends on Y", "show data flow", "impact analysis".
+    </description>
+    
+    <parameters>
+      <param name="entity_name" type="string" required="true">
+        <description>Name of table, field, or job to trace</description>
+      </param>
+      
+      <param name="entity_type" type="string" required="false" default="table">
+        <description>Type of entity to trace</description>
+        <options>
+          <option value="table">Database table</option>
+          <option value="field">Specific field/column</option>
+          <option value="job">Sync job</option>
+        </options>
+      </param>
+      
+      <param name="direction" type="string" required="false" default="both">
+        <description>Direction of lineage to trace</description>
+        <options>
+          <option value="upstream">Sources and dependencies (where data comes from)</option>
+          <option value="downstream">Targets and consumers (where data goes to)</option>
+          <option value="both">Both upstream and downstream</option>
+        </options>
+      </param>
+      
+      <param name="max_depth" type="integer" required="false" default="3">
+        <description>Maximum levels to traverse (1-10)</description>
+      </param>
+      
+      <param name="include_transformations" type="boolean" required="false" default="true">
+        <description>Include transformation logic in lineage</description>
+      </param>
+    </parameters>
+    
+    <return_schema type="DataLineage">
+      <field name="@type">DataLineage</field>
+      <field name="entity">Entity being traced</field>
+      <field name="upstreamSources">Array of source entities</field>
+      <field name="downstreamTargets">Array of target entities</field>
+      <field name="transformations">Array of transformation steps</field>
+      <field name="dependencies">Array of dependent entities</field>
+      <field name="impactAnalysis">Impact of changes to this entity</field>
+      <field name="lineageGraph">Graph representation for visualization</field>
+    </return_schema>
+  </tool>
+
+  <!-- Tool 6: Sync Job Management -->
+  <tool name="sync_job_management">
+    <description>
+      Manage sync jobs - start, stop, pause, resume, or retry operations.
+      Use for action requests like "start sync", "cancel job", "retry failed sync".
+    </description>
+    
+    <parameters>
+      <param name="action" type="string" required="true">
+        <description>Action to perform on sync job</description>
+        <options>
+          <option value="start">Start a new sync job</option>
+          <option value="stop">Stop a running sync job</option>
+          <option value="pause">Pause a running sync job</option>
+          <option value="resume">Resume a paused sync job</option>
+          <option value="retry">Retry a failed sync job</option>
+          <option value="cancel">Cancel a pending sync job</option>
+        </options>
+      </param>
+      
+      <param name="job_id" type="string" required="false">
+        <description>ID of existing job to manage</description>
+      </param>
+      
+      <param name="job_name" type="string" required="false">
+        <description>Name of job to manage (alternative to job_id)</description>
+      </param>
+      
+      <param name="force" type="boolean" required="false" default="false">
+        <description>Force action even if warnings exist</description>
+      </param>
+      
+      <param name="reason" type="string" required="false">
+        <description>Reason for the action (logged for audit)</description>
+      </param>
+    </parameters>
+    
+    <return_schema type="SyncJobAction">
+      <field name="@type">SyncJobAction</field>
+      <field name="action">Action performed</field>
+      <field name="jobId">Job identifier</field>
+      <field name="status">Result status (success, failed, pending)</field>
+      <field name="message">Result message</field>
+      <field name="timestamp">When action was performed</field>
+    </return_schema>
+    
+    <requires_permission>sync_job_write</requires_permission>
+  </tool>
+
+  <!-- Tool 7: Query Optimization Suggestions -->
+  <tool name="query_optimization">
+    <description>
+      Get optimization suggestions for slow or inefficient syncs.
+      Use when users ask "how to speed up sync", "why is X slow", "optimize performance".
+    </description>
+    
+    <parameters>
+      <param name="entity_name" type="string" required="false">
+        <description>Name of job or table to optimize</description>
+      </param>
+      
+      <param name="performance_threshold" type="string" required="false" default="slow">
+        <description>Performance level to analyze</description>
+        <options>
+          <option value="slow">Only show slow syncs needing attention</option>
+          <option value="all">Show optimization suggestions for all syncs</option>
+        </options>
+      </param>
+    </parameters>
+    
+    <return_schema type="OptimizationSuggestion">
+      <field name="@type">OptimizationSuggestion</field>
+      <field name="entity">Entity being analyzed</field>
+      <field name="currentPerformance">Current performance metrics</field>
+      <field name="suggestions">Array of optimization recommendations</field>
+      <field name="estimatedImprovement">Expected performance gain</field>
+      <field name="implementationEffort">Low, medium, or high</field>
+    </return_schema>
+  </tool>
+
+  <!-- Tool 8: Alert and Notification Query -->
+  <tool name="alert_query">
+    <description>
+      Query active alerts, notifications, and monitoring events.
+      Use for "show alerts", "what notifications do I have", "any issues detected".
+    </description>
+    
+    <parameters>
+      <param name="alert_type" type="string" required="false">
+        <description>Type of alert to query</description>
+        <options>
+          <option value="error">Error alerts</option>
+          <option value="warning">Warning alerts</option>
+          <option value="info">Informational alerts</option>
+          <option value="threshold">Threshold breach alerts</option>
+          <option value="all">All alert types</option>
+        </options>
+      </param>
+      
+      <param name="status" type="string" required="false" default="active">
+        <description>Alert status filter</description>
+        <options>
+          <option value="active">Currently active alerts</option>
+          <option value="acknowledged">Acknowledged but not resolved</option>
+          <option value="resolved">Resolved alerts</option>
+          <option value="all">All alerts</option>
+        </options>
+      </param>
+      
+      <param name="time_range" type="string" required="false" default="last 24 hours">
+        <description>Time range for alerts</description>
+      </param>
+    </parameters>
+    
+    <return_schema type="Alert">
+      <field name="@type">Alert</field>
+      <field name="alertId">Unique alert identifier</field>
+      <field name="alertType">Type of alert</field>
+      <field name="severity">Critical, high, medium, low</field>
+      <field name="message">Alert message</field>
+      <field name="entity">Affected entity</field>
+      <field name="timestamp">When alert was triggered</field>
+      <field name="status">Active, acknowledged, resolved</field>
+      <field name="actionRequired">Recommended action</field>
+    </return_schema>
+  </tool>
+</tools>
