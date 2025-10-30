@@ -1,0 +1,258 @@
+# TableSyncAI Integration Configuration Example
+# This configuration demonstrates how to set up NLWeb for TableSyncAI
+
+# NLWeb Configuration
+nlweb:
+  # Site identifier for TableSyncAI
+  site: "tablesyncai"
+  
+  # Enable all processing features
+  tool_selection_enabled: true
+  memory_enabled: true
+  analyze_query_enabled: true
+  decontextualize_enabled: true
+  required_info_enabled: true
+  aggregation_enabled: true
+
+# LLM Configuration
+llm:
+  preferred_endpoint: "azure_openai"
+  
+  endpoints:
+    azure_openai:
+      api_key: "${AZURE_OPENAI_KEY}"
+      api_base: "https://tablesyncai.openai.azure.com/"
+      api_version: "2024-08-01-preview"
+      deployment_name: "gpt-4o"
+    
+    # Fallback option
+    anthropic:
+      api_key: "${ANTHROPIC_API_KEY}"
+      model: "claude-3-5-sonnet-20241022"
+  
+  # Task-specific model selection for cost optimization
+  model_selection:
+    query_analysis: "gpt-4o-mini"     # Fast and cost-effective
+    decontextualization: "gpt-4o-mini"
+    relevance_check: "gpt-4o-mini"
+    tool_selection: "gpt-4o"           # Need accuracy
+    ranking: "gpt-4o"                  # Quality matters
+    generation: "gpt-4o"               # User-facing
+    error_analysis: "gpt-4o"           # Complex reasoning
+    summarization: "gpt-4o"
+
+# Retrieval Configuration
+retrieval:
+  # Recommended: Azure AI Search for Azure integration
+  backend: "azure_ai_search"
+  
+  azure_ai_search:
+    service_name: "${AZURE_SEARCH_SERVICE}"
+    api_key: "${AZURE_SEARCH_API_KEY}"
+    index_name: "tablesyncai-index"
+    semantic_configuration: "tablesyncai-semantic-config"
+  
+  # Alternative: Qdrant for open-source deployment
+  qdrant:
+    url: "http://localhost:6333"
+    collection_name: "tablesyncai"
+    api_key: "${QDRANT_API_KEY}"
+  
+  # Search parameters
+  top_k: 20                # Retrieve top 20 candidates
+  min_score: 0.7           # Minimum relevance threshold
+  use_semantic_search: true
+  use_hybrid_search: true  # Combine vector + keyword search
+
+# Embedding Configuration
+embedding:
+  provider: "azure_openai"
+  model: "text-embedding-3-large"
+  dimensions: 3072
+  batch_size: 100
+
+# TableSyncAI-Specific Tool Configuration
+tools:
+  # Path to TableSyncAI tools definition
+  manifest_path: "config/tablesyncai_tools.xml"
+  
+  # Tool-specific settings
+  sync_status_search:
+    default_time_range: "7d"
+    max_results: 50
+  
+  error_analysis:
+    include_stack_trace: false  # Don't expose internal details
+    suggest_fixes: true
+  
+  performance_metrics:
+    default_aggregation: "daily"
+    retention_days: 90
+
+# Authentication & Authorization
+auth:
+  enabled: true
+  provider: "jwt"  # TableSyncAI uses JWT tokens
+  
+  jwt:
+    secret_key: "${JWT_SECRET_KEY}"
+    algorithm: "HS256"
+    token_expiry: 3600  # 1 hour
+  
+  # Row-level security
+  enable_row_level_security: true
+  filter_by_organization: true
+  filter_by_permissions: true
+
+# API Configuration
+api:
+  endpoints:
+    ask: "/api/nlweb/ask"
+    mcp: "/api/nlweb/mcp"
+    websocket: "/api/nlweb/ws"
+    tools: "/api/nlweb/tools"
+    health: "/api/nlweb/health"
+  
+  # Rate limiting
+  rate_limit:
+    enabled: true
+    requests_per_minute: 60
+    burst: 10
+  
+  # Response format
+  default_mode: "list"  # list, summarize, or generate
+  streaming_enabled: true
+
+# Chat Configuration (WebSocket)
+chat:
+  storage:
+    backend: "memory"  # Start with memory, migrate to postgres/redis
+  
+  context:
+    human_messages: 5    # Include last 5 human messages for context
+    nlweb_timeout: 30    # Timeout for NLWeb responses
+    ws_max_retries: 10
+  
+  limits:
+    max_participants: 100
+    queue_size: 1000
+    max_message_size: 10000  # characters
+
+# Voice Configuration (Phase 2)
+voice:
+  enabled: false  # Enable when Phase 2 is ready
+  
+  speech_to_text:
+    provider: "azure_speech"
+    azure_speech:
+      subscription_key: "${AZURE_SPEECH_KEY}"
+      region: "eastus"
+      language: "en-US"
+      recognition_mode: "conversation"  # or "dictation"
+  
+  text_to_speech:
+    provider: "azure_speech"
+    azure_speech:
+      voice_name: "en-US-JennyNeural"  # Professional voice
+      output_format: "audio-16khz-128kbitrate-mono-mp3"
+      speaking_rate: "medium"
+      pitch: "medium"
+  
+  # Voice-specific prompt engineering
+  voice_prompts:
+    max_response_length: 200  # Characters for TTS
+    use_contractions: true
+    avoid_technical_jargon: true
+    include_follow_up_question: true
+
+# Logging & Monitoring
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  
+  # Audit logging for compliance
+  audit:
+    enabled: true
+    log_all_queries: true
+    log_results: false  # Don't log sensitive data
+    retention_days: 90
+  
+  # Performance monitoring
+  metrics:
+    enabled: true
+    track_latency: true
+    track_token_usage: true
+    track_costs: true
+
+# Data Privacy & Security
+security:
+  # PII handling
+  redact_pii: true
+  pii_fields: ["email", "phone", "ssn", "credit_card"]
+  
+  # Encryption
+  encrypt_at_rest: true
+  encrypt_in_transit: true
+  
+  # Compliance
+  gdpr_compliant: true
+  hipaa_compliant: false  # Set true if handling health data
+  
+  # Data retention
+  conversation_retention_days: 30
+  error_log_retention_days: 90
+
+# Chatbot Instructions (TableSyncAI-specific)
+chatbot_instructions:
+  system_prompt: >
+    You are TableSyncAI Assistant, a helpful AI that helps users manage and 
+    monitor their data synchronization jobs. You have access to information about 
+    sync jobs, configurations, errors, and performance metrics.
+    
+    When responding:
+    1. Be clear and concise
+    2. Use TableSyncAI terminology correctly
+    3. Provide actionable suggestions
+    4. Ask clarifying questions when needed
+    5. Format results using markdown for readability
+    6. Include links to relevant documentation
+    
+  search_results: >
+    IMPORTANT FORMATTING INSTRUCTION: When presenting sync job results:
+    1. Format job names as hyperlinks to job details page
+    2. Use status badges (✅ Success, ❌ Failed, ⏳ Running, ⏸️ Pending)
+    3. Include key metrics (records processed, duration, errors)
+    4. Highlight errors or warnings in red/yellow
+    5. Suggest next steps for failed jobs
+    
+  error_explanation: >
+    When explaining errors:
+    1. Start with a simple explanation in plain English
+    2. Provide the technical error code and message
+    3. Suggest 2-3 possible causes
+    4. Recommend specific troubleshooting steps
+    5. Link to relevant documentation or support
+
+# Headers for API responses
+headers:
+  user_agent: "TableSyncAI-NLWeb/1.0"
+  data_retention: "Conversation data retained for 30 days"
+  terms_of_service: "https://tablesyncai.com/terms"
+  privacy_policy: "https://tablesyncai.com/privacy"
+
+# Example queries for testing
+example_queries:
+  - "Show me all failed syncs from yesterday"
+  - "What's the status of the customer database sync?"
+  - "Why did sync job #12345 fail?"
+  - "Show me performance metrics for the last week"
+  - "How is the orders table mapped?"
+  - "Which syncs are taking the longest?"
+  - "Show me connection settings for production database"
+  - "What tables depend on the products table?"
+
+# Development/Testing settings
+development:
+  debug_mode: true
+  mock_external_apis: false
+  disable_auth: false  # Keep auth enabled even in dev
+  test_data_path: "../data/test/tablesyncai"
