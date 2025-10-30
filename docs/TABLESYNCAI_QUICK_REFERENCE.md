@@ -52,7 +52,7 @@ curl -X POST http://localhost:8000/api/nlweb/ask \
 
 ## 💰 Cost Summary
 
-### POC Mode (Development & Demos) - $0/month
+### Mock Mode (Development & Demos) - $0/month
 - Mock backend with static data
 - Pattern-matched responses
 - Full UI without Azure services
@@ -82,10 +82,10 @@ curl -X POST http://localhost:8000/api/nlweb/ask \
 
 ## 🚀 Deployment Modes
 
-### 1. POC Mode (Week 0)
+### 1. Mock Mode (Week 0)
 ```bash
 # Zero cost - runs locally
-python -m webserver.aiohttp_server --config config/config_tablesyncai_poc.yaml --mode poc
+python -m webserver.aiohttp_server --config config/config_tablesyncai_mock.yaml --mode poc
 ```
 
 ### 2. Feature-Flagged (Weeks 1-12)
@@ -105,10 +105,10 @@ terraform apply -var="deployment_enabled=true"
 
 ## 📅 Timeline
 
-### Phase 1: 12 Weeks + POC
+### Phase 1: 12 Weeks + Mock
 | Week | Milestone |
 |------|-----------|
-| 0 | **POC Mode** (mock UI, zero cost) |
+| 0 | **Mock Mode** (mock UI, zero cost) |
 | 1-2 | Foundation + feature flags (env, vector DB, LLM) |
 | 3-4 | Data pipeline (extract, transform, load) |
 | 5-6 | Custom tools (8 tools implementation) |

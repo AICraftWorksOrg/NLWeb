@@ -258,7 +258,7 @@ Speech → Azure STT → NLWeb Processing → Azure TTS → Audio Output
 
 ## POC and Cost-Controlled Deployment
 
-### POC Mode (Zero Infrastructure Costs)
+### Mock Mode (Zero Infrastructure Costs)
 - **Mock backend** with static data and pattern-matched responses
 - Full visual interface without real Azure services
 - Perfect for early demos and UI/UX validation
@@ -273,7 +273,7 @@ Speech → Azure STT → NLWeb Processing → Azure TTS → Audio Output
 
 ### Deployment Workflow
 ```
-Week 0-2: POC Mode → Free development and demos
+Week 0-2: Mock Mode → Free development and demos
 Week 3+:  Feature-Flagged → Enable for scheduled testing/demos
 Production: Continuous → Full deployment at $831/month
 ```

@@ -369,19 +369,19 @@ def filter_results_by_user(results, user_context):
    - "What tables depend on the products table?"
    - "Show me the complete pipeline for orders data"
 
-### 1.6 POC and Cost-Controlled Deployment Strategy
+### 1.6 Mock and Cost-Controlled Deployment Strategy
 
 To address budget constraints during proof-of-concept and demo phases, the implementation includes two deployment modes:
 
-#### 1.6.1 POC Mode: Mock-Up Visual Interface (Zero Cloud Costs)
+#### 1.6.1 Mock Mode: Frontend-Only Visual Interface (Zero Cloud Costs)
 
-**Purpose**: Enable early user testing and stakeholder demos without incurring Azure infrastructure costs.
+**Purpose**: Enable early user testing and stakeholder demos without incurring Azure infrastructure costs. This is a development mode with mocked backend, not to be confused with a POC environment which would be a real Azure environment targeting prototype branches.
 
 **Implementation Approach:**
 
 1. **Mock Backend with Static Data**
    ```python
-   # config/config_tablesyncai_poc.yaml
+   # config/config_tablesyncai_mock.yaml
    deployment_mode: "poc"
    
    mock_backend:
@@ -426,11 +426,11 @@ To address budget constraints during proof-of-concept and demo phases, the imple
 
 4. **Local Development Server**
    ```bash
-   # Run POC mode locally (no Azure costs)
-   python -m webserver.aiohttp_server --config config/config_tablesyncai_poc.yaml --mode poc
+   # Run Mock mode locally (no Azure costs)
+   python -m webserver.aiohttp_server --config config/config_tablesyncai_mock.yaml --mode mock
    ```
 
-**POC Mode Features:**
+**Mock Mode Features:**
 - ✅ Full visual interface with TableSyncAI branding
 - ✅ Simulated query processing with realistic delays
 - ✅ Pre-defined responses for common queries
@@ -439,13 +439,13 @@ To address budget constraints during proof-of-concept and demo phases, the imple
 - ✅ **Zero cloud infrastructure costs**
 - ✅ Can run on local laptop or single EC2 instance
 
-**POC Mode Limitations:**
+**Mock Mode Limitations:**
 - ❌ No real LLM intelligence (pattern-matched responses only)
 - ❌ No semantic search (keyword matching only)
 - ❌ Limited to pre-defined mock data
 - ❌ No real-time TableSyncAI data
 
-**POC Cost**: $0/month (runs locally or on existing infrastructure)
+**Mock Mode Cost**: $0/month (runs locally or on existing infrastructure)
 
 #### 1.6.2 Feature-Flagged Production Deployment (On-Demand Costs)
 
@@ -666,7 +666,7 @@ feature_flags:
 - ✅ Infrastructure can be created/destroyed in 5-10 minutes
 
 **Cost Control Strategy:**
-1. **Development Phase**: Use POC mode (free)
+1. **Development Phase**: Use Mock mode (free)
 2. **Internal Demos**: Enable for 2-4 hours, $2-5 per demo
 3. **Customer Demos**: Enable for scheduled 1-hour slots, ~$1-2 per demo
 4. **Extended Testing**: Enable for 1-2 days, $25-60 total
@@ -674,7 +674,7 @@ feature_flags:
 
 #### 1.6.3 Deployment Mode Comparison
 
-| Aspect | POC Mode | Feature-Flagged Production |
+| Aspect | Mock Mode | Feature-Flagged Production |
 |--------|----------|----------------------------|
 | **Cost** | $0/month | $830/month when enabled |
 | **Setup Time** | 1 hour | 5-10 minutes to enable |
@@ -687,8 +687,8 @@ feature_flags:
 #### 1.6.4 Recommended Deployment Workflow
 
 ```
-Phase 0: POC Development (Weeks 0-2)
-├─ Build POC mode with mock data
+Phase 0: Mock Development (Weeks 0-2)
+├─ Build Mock mode with mock data
 ├─ Design UI/UX with stakeholders
 ├─ Create demo scenarios
 └─ Cost: $0
@@ -717,13 +717,13 @@ Phase 4: Production Decision (Week 13)
 └─ Enable continuous deployment OR destroy infrastructure
 ```
 
-**Total POC/Demo Phase Cost**: ~$300-500 (vs. $2,500-3,500 for 3 months continuous)
+**Total Mock/Demo Phase Cost**: ~$300-500 (vs. $2,500-3,500 for 3 months continuous)
 **Cost Savings**: ~85% during demo phase
 
 ### 1.7 Implementation Roadmap
 
-#### Week 0 (Pre-Phase 1): POC Mode Setup
-- [ ] Create POC configuration (`config_tablesyncai_poc.yaml`)
+#### Week 0 (Pre-Phase 1): Mock Mode Setup
+- [ ] Create Mock configuration (`config_tablesyncai_mock.yaml`)
 - [ ] Build mock data files with 20+ sample sync jobs
 - [ ] Implement pattern-matching response system
 - [ ] Set up local development server
@@ -1371,14 +1371,14 @@ voice_mode:
 
 ## Cost Estimation
 
-### POC/Demo Mode (Zero Infrastructure Costs)
+### Mock/Demo Mode (Zero Infrastructure Costs)
 
 | Component | Implementation | Cost |
 |-----------|----------------|------|
 | Development Server | Local/existing infrastructure | $0 |
 | Mock Data & Responses | Static JSON files | $0 |
 | UI Development | One-time development effort | $0 |
-| **Total POC Cost** | | **$0/month** |
+| **Total Mock Mode Cost** | | **$0/month** |
 
 **Use Case**: Early demos, UI/UX validation, stakeholder presentations
 
@@ -1418,7 +1418,7 @@ voice_mode:
 | **Total** | | | **~$10,947/month** |
 
 **Cost Optimization Strategies:**
-- **Use POC mode for development and early demos** - Save 100% of infrastructure costs
+- **Use Mock mode for development and early demos** - Save 100% of infrastructure costs
 - **Feature flag expensive components** - Disable error_analysis and data_lineage during low-usage periods
 - Use GPT-4o-mini for non-critical tasks (10x cheaper)
 - Implement caching for common queries
@@ -1431,7 +1431,7 @@ voice_mode:
 
 | Phase | Duration | Traditional Cost | Feature-Flagged Cost | Savings |
 |-------|----------|------------------|----------------------|---------|
-| POC Development | 2 weeks | $415 | $0 | $415 (100%) |
+| Mock Development | 2 weeks | $415 | $0 | $415 (100%) |
 | Integration Dev | 8 weeks | $1,660 | $110 | $1,550 (93%) |
 | Demo Period | 2 weeks | $415 | $36 | $379 (91%) |
 | **Total Pre-Production** | **12 weeks** | **$2,490** | **$146** | **$2,344 (94%)** |

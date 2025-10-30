@@ -79,9 +79,9 @@ Set up the development environment with NLWeb infrastructure targeting the Table
 
 ---
 
-## Issue #2: Implement POC Mode with Mock Backend
+## Issue #2: Implement Mock Mode with Mock Backend
 
-**Title**: [TableSyncAI-Dev] Implement POC Mode with Mock Backend (Zero Cost)
+**Title**: [TableSyncAI-Dev] Implement Mock Mode with Mock Backend (Zero Cost)
 
 **Labels**: `enhancement`, `poc`, `dev-environment`, `week-0`
 
@@ -90,7 +90,7 @@ Set up the development environment with NLWeb infrastructure targeting the Table
 **Description**:
 
 ### Objective
-Implement POC mode with mock backend to enable zero-cost demos and early stakeholder presentations.
+Implement Mock mode with mock backend to enable zero-cost demos and early stakeholder presentations.
 
 ### Environment Details
 - **Environment**: Development (Local/Existing Infrastructure)
@@ -110,7 +110,7 @@ Implement POC mode with mock backend to enable zero-cost demos and early stakeho
 
 #### POC Configuration
 - [ ] Create `config/config_tablesyncai_poc.yaml`
-  - Set `deployment_mode: "poc"`
+  - Set `deployment_mode: "mock"`
   - Enable `mock_backend: true`
   - Configure pattern matching for common queries
 - [ ] Create `config/mock_llm_responses.json` with canned responses
@@ -755,7 +755,7 @@ Make production deployment decision based on demo results and plan production de
 
 ### Issue Dependency Flow
 ```
-Issue #1 (Foundation) → Issue #2 (POC Mode)
+Issue #1 (Foundation) → Issue #2 (Mock Mode)
                       ↓
 Issue #1 (Foundation) → Issue #3 (Terraform/IaC)
                       ↓
@@ -767,7 +767,7 @@ Issue #8 (Demo & QA) → Issue #9 (Production Decision)
 ```
 
 ### Timeline (12 Weeks + POC)
-- **Week 0**: Issue #2 (POC Mode)
+- **Week 0**: Issue #2 (Mock Mode)
 - **Weeks 1-2**: Issue #1 (Foundation)
 - **Week 3**: Issue #3 (Terraform/IaC)
 - **Weeks 3-4**: Issue #4 (Data Pipeline)
@@ -778,7 +778,7 @@ Issue #8 (Demo & QA) → Issue #9 (Production Decision)
 - **Week 13**: Issue #9 (Production Decision)
 
 ### Cost Tracking (Dev Environment)
-- Week 0: $0 (POC Mode)
+- Week 0: $0 (Mock Mode)
 - Weeks 1-2: ~$20 (infrastructure setup, minimal usage)
 - Weeks 3-10: ~$90 (2-4 hours/day enabled)
 - Weeks 11-12: ~$36 (demo period)
