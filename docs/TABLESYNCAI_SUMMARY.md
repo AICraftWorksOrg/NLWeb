@@ -256,13 +256,38 @@ User → Auth → Row-Level Filter → Results (only user's org data)
 Speech → Azure STT → NLWeb Processing → Azure TTS → Audio Output
 ```
 
+## POC and Cost-Controlled Deployment
+
+### POC Mode (Zero Infrastructure Costs)
+- **Mock backend** with static data and pattern-matched responses
+- Full visual interface without real Azure services
+- Perfect for early demos and UI/UX validation
+- **Cost**: $0/month
+
+### Feature-Flagged Production
+- **On-demand deployment** - Enable only when needed
+- Enable for demos: ~$1-2 per hour
+- Disable between demos to save costs
+- Quick enable/disable via Azure App Configuration
+- **Demo phase cost**: ~$146 vs $2,490 continuous (94% savings)
+
+### Deployment Workflow
+```
+Week 0-2: POC Mode → Free development and demos
+Week 3+:  Feature-Flagged → Enable for scheduled testing/demos
+Production: Continuous → Full deployment at $831/month
+```
+
 ## Cost Optimization Strategies
 
-1. Use GPT-4o-mini for non-critical tasks (10x cheaper)
-2. Implement caching for common queries
-3. Batch embeddings generation
-4. Use reserved Azure instances
-5. Monitor and optimize token usage
+1. **Use POC mode** for development and early demos (100% cost savings)
+2. **Feature flag expensive components** - Disable when not in use
+3. Use GPT-4o-mini for non-critical tasks (10x cheaper)
+4. Implement caching for common queries
+5. Batch embeddings generation
+6. Use reserved Azure instances
+7. Monitor and optimize token usage
+8. **Auto-shutdown on budget threshold** - Prevent runaway costs
 
 ## Risk Mitigation
 

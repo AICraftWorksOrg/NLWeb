@@ -52,29 +52,69 @@ curl -X POST http://localhost:8000/api/nlweb/ask \
 
 ## 💰 Cost Summary
 
-### Phase 1 (Text Interface) - $830/month
+### POC Mode (Development & Demos) - $0/month
+- Mock backend with static data
+- Pattern-matched responses
+- Full UI without Azure services
+- **Use for**: Early demos, UI testing
+
+### Feature-Flagged Production (On-Demand)
+| Usage | Hours/Month | Cost | Use Case |
+|-------|-------------|------|----------|
+| Dev Testing | 40h (2h/day) | ~$55 | Development |
+| Demo Period | 10h (10x1h) | ~$14 | Customer demos |
+| **Demo Phase** | **~106h/12wks** | **~$146** | **vs $2,490 continuous** |
+
+**Savings**: 94% during development phase
+
+### Phase 1 (Continuous Production) - $831/month
 - Azure AI Search (S1): $250
 - Azure OpenAI (GPT-4o): $500
 - Embeddings: $6.50
 - Hosting: $73
+- Feature Flags: $1.20
 
-### Phase 2 (+ Voice) - $10,946/month
-- Phase 1 costs: $830
+### Phase 2 (+ Voice) - $10,947/month
+- Phase 1 costs: $831
 - Azure Speech STT: $10,000
 - Azure TTS: $16
 - Additional compute: $100
 
+## 🚀 Deployment Modes
+
+### 1. POC Mode (Week 0)
+```bash
+# Zero cost - runs locally
+python -m webserver.aiohttp_server --config config/config_tablesyncai_poc.yaml --mode poc
+```
+
+### 2. Feature-Flagged (Weeks 1-12)
+```bash
+# Enable infrastructure for demos
+./scripts/deploy_demo_infrastructure.sh
+
+# Disable after demos to save costs
+./scripts/shutdown_demo_infrastructure.sh
+```
+
+### 3. Production (Week 13+)
+```bash
+# Continuous deployment
+terraform apply -var="deployment_enabled=true"
+```
+
 ## 📅 Timeline
 
-### Phase 1: 12 Weeks
+### Phase 1: 12 Weeks + POC
 | Week | Milestone |
 |------|-----------|
-| 1-2 | Foundation (env, vector DB, LLM) |
+| 0 | **POC Mode** (mock UI, zero cost) |
+| 1-2 | Foundation + feature flags (env, vector DB, LLM) |
 | 3-4 | Data pipeline (extract, transform, load) |
 | 5-6 | Custom tools (8 tools implementation) |
 | 7-8 | API integration (REST, auth, security) |
 | 9-10 | UI integration (chat widget, styling) |
-| 11-12 | Testing (performance, quality, docs) |
+| 11-12 | Demo period & testing (scheduled demos, ~$146 total) |
 
 ### Phase 2: 5 Months
 | Month | Milestone |

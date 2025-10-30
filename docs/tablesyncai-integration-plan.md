@@ -369,50 +369,418 @@ def filter_results_by_user(results, user_context):
    - "What tables depend on the products table?"
    - "Show me the complete pipeline for orders data"
 
-### 1.6 Implementation Roadmap
+### 1.6 POC and Cost-Controlled Deployment Strategy
 
-#### Week 1-2: Foundation
+To address budget constraints during proof-of-concept and demo phases, the implementation includes two deployment modes:
+
+#### 1.6.1 POC Mode: Mock-Up Visual Interface (Zero Cloud Costs)
+
+**Purpose**: Enable early user testing and stakeholder demos without incurring Azure infrastructure costs.
+
+**Implementation Approach:**
+
+1. **Mock Backend with Static Data**
+   ```python
+   # config/config_tablesyncai_poc.yaml
+   deployment_mode: "poc"
+   
+   mock_backend:
+     enabled: true
+     data_source: "static_json"  # Load from local JSON files
+     response_delay: 500  # Simulate realistic latency (ms)
+   
+   # Disable real Azure services
+   llm:
+     mock_mode: true
+     mock_responses: "config/mock_llm_responses.json"
+   
+   retrieval:
+     mock_mode: true
+     mock_data: "data/mock_sync_jobs.json"
+   ```
+
+2. **Static Mock Data Files**
+   ```json
+   // data/mock_sync_jobs.json
+   [
+     {
+       "@type": "SyncJob",
+       "name": "Customer Database Sync",
+       "identifier": "sync-job-12345",
+       "status": "failed",
+       "startTime": "2025-10-28T10:00:00Z",
+       "error": {
+         "errorCode": "ERR_TIMEOUT_001",
+         "message": "Connection timeout to source database"
+       }
+     },
+     // Additional mock data...
+   ]
+   ```
+
+3. **Frontend Configuration**
+   - Full UI implementation with all visual elements
+   - Query input and response rendering
+   - No actual API calls to Azure services
+   - Canned responses based on query patterns
+
+4. **Local Development Server**
+   ```bash
+   # Run POC mode locally (no Azure costs)
+   python -m webserver.aiohttp_server --config config/config_tablesyncai_poc.yaml --mode poc
+   ```
+
+**POC Mode Features:**
+- ✅ Full visual interface with TableSyncAI branding
+- ✅ Simulated query processing with realistic delays
+- ✅ Pre-defined responses for common queries
+- ✅ Conversation history and context
+- ✅ Demo-ready with 20+ sample scenarios
+- ✅ **Zero cloud infrastructure costs**
+- ✅ Can run on local laptop or single EC2 instance
+
+**POC Mode Limitations:**
+- ❌ No real LLM intelligence (pattern-matched responses only)
+- ❌ No semantic search (keyword matching only)
+- ❌ Limited to pre-defined mock data
+- ❌ No real-time TableSyncAI data
+
+**POC Cost**: $0/month (runs locally or on existing infrastructure)
+
+#### 1.6.2 Feature-Flagged Production Deployment (On-Demand Costs)
+
+**Purpose**: Enable full Azure-powered functionality that can be enabled/disabled via feature flags to control costs during demo periods.
+
+**Architecture:**
+
+```yaml
+# config/config_tablesyncai_production.yaml
+deployment_mode: "production"
+
+feature_flags:
+  nlweb_enabled: false  # Master switch for entire NL interface
+  
+  components:
+    llm_enabled: false          # Azure OpenAI calls
+    vector_search_enabled: false # Azure AI Search
+    voice_enabled: false         # Azure Speech (Phase 2)
+  
+  # Granular control
+  tools:
+    sync_status_search: true     # Always enabled
+    error_analysis: false        # Expensive LLM calls, disable by default
+    performance_metrics: true
+    data_lineage: false          # Can be expensive
+```
+
+**Infrastructure as Code (Terraform/ARM)**
+
+1. **Azure Resource Creation with Auto-Shutdown**
+   ```hcl
+   # terraform/tablesyncai_nlweb.tf
+   
+   variable "deployment_enabled" {
+     description = "Enable/disable entire deployment"
+     type        = bool
+     default     = false
+   }
+   
+   # Azure AI Search
+   resource "azurerm_search_service" "nlweb" {
+     count               = var.deployment_enabled ? 1 : 0
+     name                = "tablesyncai-nlweb-search"
+     resource_group_name = azurerm_resource_group.nlweb.name
+     location            = var.location
+     sku                 = "basic"  # $75/month - cheaper for demos
+     
+     tags = {
+       auto_shutdown = "enabled"
+       cost_center   = "poc_demo"
+     }
+   }
+   
+   # Azure OpenAI
+   resource "azurerm_cognitive_account" "openai" {
+     count               = var.deployment_enabled ? 1 : 0
+     name                = "tablesyncai-openai"
+     resource_group_name = azurerm_resource_group.nlweb.name
+     location            = var.location
+     kind                = "OpenAI"
+     sku_name            = "S0"
+     
+     tags = {
+       auto_shutdown = "enabled"
+       cost_center   = "poc_demo"
+     }
+   }
+   ```
+
+2. **Deployment Scripts**
+   ```bash
+   #!/bin/bash
+   # scripts/deploy_demo_infrastructure.sh
+   
+   # Deploy infrastructure for demo (5-10 minutes)
+   terraform apply -var="deployment_enabled=true" -auto-approve
+   
+   # Wait for resources to be ready
+   az search service show --name tablesyncai-nlweb-search --resource-group nlweb-rg
+   
+   # Enable feature flags
+   az appconfig kv set --name tablesyncai-config \
+     --key "FeatureFlags:nlweb_enabled" \
+     --value true \
+     --yes
+   
+   echo "✅ Demo infrastructure deployed and enabled"
+   echo "Estimated cost: ~$830/month prorated for actual usage time"
+   ```
+
+   ```bash
+   #!/bin/bash
+   # scripts/shutdown_demo_infrastructure.sh
+   
+   # Disable feature flags immediately (stops new charges)
+   az appconfig kv set --name tablesyncai-config \
+     --key "FeatureFlags:nlweb_enabled" \
+     --value false \
+     --yes
+   
+   echo "⏸️  Feature flags disabled (no new API calls)"
+   
+   # Optional: Destroy infrastructure (saves all costs)
+   read -p "Destroy infrastructure to save costs? (y/N) " -n 1 -r
+   echo
+   if [[ $REPLY =~ ^[Yy]$ ]]; then
+     terraform destroy -var="deployment_enabled=false" -auto-approve
+     echo "🗑️  Infrastructure destroyed - $0/month"
+   else
+     echo "⏸️  Infrastructure paused - minimal costs (~$75/month for search)"
+   fi
+   ```
+
+3. **Application-Level Feature Flags**
+   ```python
+   # core/feature_flags.py
+   
+   from azure.appconfiguration import AzureAppConfigurationClient
+   import os
+   
+   class FeatureFlags:
+       def __init__(self):
+           self.config_client = AzureAppConfigurationClient.from_connection_string(
+               os.getenv('AZURE_APPCONFIG_CONNECTION_STRING')
+           )
+           self._cache = {}
+           self._cache_ttl = 60  # Refresh every 60 seconds
+       
+       def is_enabled(self, feature_name: str) -> bool:
+           """Check if feature is enabled via Azure App Configuration"""
+           try:
+               setting = self.config_client.get_configuration_setting(
+                   key=f"FeatureFlags:{feature_name}"
+               )
+               return setting.value.lower() == "true"
+           except:
+               # Default to disabled if App Config unavailable
+               return False
+       
+       def require_feature(self, feature_name: str):
+           """Decorator to protect endpoints with feature flags"""
+           def decorator(func):
+               async def wrapper(*args, **kwargs):
+                   if not self.is_enabled(feature_name):
+                       return {
+                           "error": "Feature not available",
+                           "message": f"{feature_name} is currently disabled",
+                           "fallback": "Please use standard TableSyncAI UI"
+                       }
+                   return await func(*args, **kwargs)
+               return wrapper
+           return decorator
+   
+   # Usage in endpoints
+   feature_flags = FeatureFlags()
+   
+   @app.route('/api/nlweb/ask', methods=['POST'])
+   @feature_flags.require_feature('nlweb_enabled')
+   async def ask_endpoint(request):
+       # Only executes if feature is enabled
+       query = request.json['query']
+       
+       # Check component-level flags
+       if feature_flags.is_enabled('llm_enabled'):
+           result = await nlweb_handler.ask(query)
+       else:
+           result = await nlweb_handler.ask_cached_only(query)
+       
+       return result
+   ```
+
+4. **Cost Monitoring and Auto-Shutdown**
+   ```python
+   # monitoring/cost_guard.py
+   
+   from azure.mgmt.costmanagement import CostManagementClient
+   import asyncio
+   
+   class CostGuard:
+       def __init__(self, budget_limit: float = 100):
+           self.budget_limit = budget_limit  # $100/day for demos
+           self.cost_client = CostManagementClient(credential, subscription_id)
+       
+       async def monitor_costs(self):
+           """Monitor costs and auto-disable if over budget"""
+           while True:
+               daily_cost = await self.get_daily_cost()
+               
+               if daily_cost > self.budget_limit:
+                   print(f"⚠️  Daily cost ${daily_cost} exceeds limit ${self.budget_limit}")
+                   await self.emergency_shutdown()
+               
+               await asyncio.sleep(3600)  # Check hourly
+       
+       async def emergency_shutdown(self):
+           """Disable all expensive features immediately"""
+           feature_flags = FeatureFlags()
+           
+           # Disable LLM calls
+           await feature_flags.set('llm_enabled', False)
+           await feature_flags.set('vector_search_enabled', False)
+           
+           # Send alert
+           await self.send_alert(
+               "NLWeb features auto-disabled due to budget limit. "
+               "Using cached responses only."
+           )
+   ```
+
+**Feature-Flagged Deployment Benefits:**
+- ✅ Full production-ready implementation
+- ✅ Real Azure OpenAI and Azure AI Search when enabled
+- ✅ Enable for specific demo periods (hours/days)
+- ✅ Disable to prevent costs between demos
+- ✅ Granular control (can disable expensive features only)
+- ✅ Cost monitoring and auto-shutdown
+- ✅ Quick enable/disable (< 1 minute via API)
+- ✅ Infrastructure can be created/destroyed in 5-10 minutes
+
+**Cost Control Strategy:**
+1. **Development Phase**: Use POC mode (free)
+2. **Internal Demos**: Enable for 2-4 hours, $2-5 per demo
+3. **Customer Demos**: Enable for scheduled 1-hour slots, ~$1-2 per demo
+4. **Extended Testing**: Enable for 1-2 days, $25-60 total
+5. **Production Readiness**: Continuous deployment, $830/month
+
+#### 1.6.3 Deployment Mode Comparison
+
+| Aspect | POC Mode | Feature-Flagged Production |
+|--------|----------|----------------------------|
+| **Cost** | $0/month | $830/month when enabled |
+| **Setup Time** | 1 hour | 5-10 minutes to enable |
+| **Intelligence** | Pattern matching | Real LLM reasoning |
+| **Data** | Static mock data | Live TableSyncAI data |
+| **Use Case** | Early demos, UI testing | Customer demos, testing |
+| **Scalability** | N/A (local only) | Production-ready |
+| **Feature Completeness** | Visual only | Fully functional |
+
+#### 1.6.4 Recommended Deployment Workflow
+
+```
+Phase 0: POC Development (Weeks 0-2)
+├─ Build POC mode with mock data
+├─ Design UI/UX with stakeholders
+├─ Create demo scenarios
+└─ Cost: $0
+
+Phase 1: Infrastructure Setup (Week 3)
+├─ Set up Terraform/ARM templates
+├─ Create feature flag system
+├─ Test enable/disable workflow
+└─ Cost: $0 (infrastructure disabled)
+
+Phase 2: Integration Development (Weeks 4-10)
+├─ Build real integration
+├─ Enable infrastructure for 2-4 hours/day for testing
+├─ Disable overnight and weekends
+└─ Cost: ~$200-300 total (not monthly)
+
+Phase 3: Demo Period (Weeks 11-12)
+├─ Enable for scheduled demos
+├─ Run 5-10 customer demos (1 hour each)
+├─ Gather feedback
+└─ Cost: ~$50-100 total
+
+Phase 4: Production Decision (Week 13)
+├─ Evaluate adoption and feedback
+├─ Make go/no-go decision
+└─ Enable continuous deployment OR destroy infrastructure
+```
+
+**Total POC/Demo Phase Cost**: ~$300-500 (vs. $2,500-3,500 for 3 months continuous)
+**Cost Savings**: ~85% during demo phase
+
+### 1.7 Implementation Roadmap
+
+#### Week 0 (Pre-Phase 1): POC Mode Setup
+- [ ] Create POC configuration (`config_tablesyncai_poc.yaml`)
+- [ ] Build mock data files with 20+ sample sync jobs
+- [ ] Implement pattern-matching response system
+- [ ] Set up local development server
+- [ ] Create demo scenarios and scripts
+- [ ] **Cost: $0** (runs locally)
+
+#### Week 1-2: Foundation & Feature Flag Infrastructure
 - [ ] Set up development environment with NLWeb
+- [ ] Implement feature flag system (Azure App Configuration)
+- [ ] Create Terraform/ARM templates for Azure resources
+- [ ] Set up cost monitoring and alerts
 - [ ] Choose and configure vector database (recommend: Azure AI Search)
 - [ ] Configure LLM provider (recommend: Azure OpenAI)
 - [ ] Create TableSyncAI schema definitions
+- [ ] Test infrastructure enable/disable workflow
 
 #### Week 3-4: Data Pipeline
 - [ ] Build data extraction from TableSyncAI database
 - [ ] Implement Schema.org transformation layer
 - [ ] Create embedding generation pipeline
-- [ ] Load initial data into vector store
+- [ ] Load initial data into vector store (enable infrastructure for testing)
 - [ ] Test semantic search quality
+- [ ] Disable infrastructure between test sessions
 
 #### Week 5-6: Custom Tools
 - [ ] Implement `sync_status_search` tool
 - [ ] Implement `sync_configuration_query` tool
 - [ ] Implement `error_analysis` tool
 - [ ] Implement `performance_metrics` tool
-- [ ] Test tool selection and execution
+- [ ] Test tool selection and execution (2-4 hours/day with infrastructure enabled)
 
 #### Week 7-8: API Integration
 - [ ] Deploy NLWeb server components
-- [ ] Create TableSyncAI API endpoints
+- [ ] Create TableSyncAI API endpoints with feature flag protection
 - [ ] Implement authentication middleware
 - [ ] Add row-level security filtering
 - [ ] Set up monitoring and logging
+- [ ] Test with infrastructure enabled for scheduled periods
 
 #### Week 9-10: UI Integration
 - [ ] Integrate chat widget into web UI
 - [ ] Customize styling to match TableSyncAI brand
 - [ ] Add conversation history
 - [ ] Implement mobile-responsive design
+- [ ] Add "Feature Unavailable" fallback UI for when flags are disabled
 - [ ] User acceptance testing
 
-#### Week 11-12: Testing & Optimization
+#### Week 11-12: Demo Period & Optimization
+- [ ] Schedule and conduct 5-10 customer demos (1 hour each, infrastructure enabled)
 - [ ] Load testing and performance optimization
 - [ ] Query quality evaluation
 - [ ] User feedback collection
 - [ ] Prompt engineering refinement
 - [ ] Documentation and training materials
+- [ ] Make production deployment decision
 
-### 1.7 Success Metrics
+### 1.8 Success Metrics
 
 **Technical Metrics:**
 - Query response time: < 2 seconds for 90% of queries
@@ -1003,7 +1371,30 @@ voice_mode:
 
 ## Cost Estimation
 
-### Phase 1: Text-Only (per month)
+### POC/Demo Mode (Zero Infrastructure Costs)
+
+| Component | Implementation | Cost |
+|-----------|----------------|------|
+| Development Server | Local/existing infrastructure | $0 |
+| Mock Data & Responses | Static JSON files | $0 |
+| UI Development | One-time development effort | $0 |
+| **Total POC Cost** | | **$0/month** |
+
+**Use Case**: Early demos, UI/UX validation, stakeholder presentations
+
+### Feature-Flagged Production (On-Demand Costs)
+
+| Usage Pattern | Hours/Month Enabled | Prorated Cost | Use Case |
+|---------------|---------------------|---------------|----------|
+| Development Testing | 40 hours (2h/day) | ~$55 | Integration development |
+| Weekly Demos | 8 hours (2h/week) | ~$11 | Internal demos |
+| Customer Demos | 10 hours (10 x 1h) | ~$14 | Customer presentations |
+| Extended Testing | 48 hours (2 days) | ~$66 | Quality assurance |
+| **Demo Phase Total** | ~106 hours over 12 weeks | **~$146** | **vs $2,490 continuous** |
+
+**Cost Savings**: ~94% during demo/testing phase
+
+### Phase 1: Text-Only (Continuous Production - per month)
 
 | Component | Service | Volume | Cost |
 |-----------|---------|--------|------|
@@ -1011,24 +1402,42 @@ voice_mode:
 | LLM Calls | Azure OpenAI GPT-4o | 10M tokens | $500 |
 | Embeddings | text-embedding-3-large | 5M tokens | $6.50 |
 | Hosting | Azure App Service (P1v2) | 1 instance | $73 |
-| **Total** | | | **~$830/month** |
+| Feature Flag Service | Azure App Configuration | Standard tier | $1.20 |
+| **Total** | | | **~$831/month** |
 
-### Phase 2: Text + Voice (per month)
+**Note**: With feature flags, can reduce to ~$75/month (storage only) when disabled
+
+### Phase 2: Text + Voice (Continuous Production - per month)
 
 | Component | Service | Volume | Cost |
 |-----------|---------|--------|------|
-| Phase 1 costs | | | $830 |
+| Phase 1 costs | | | $831 |
 | Speech-to-Text | Azure Speech | 10,000 hours | $10,000 |
 | Text-to-Speech | Azure Neural TTS | 1M characters | $16 |
 | Additional compute | For voice processing | | $100 |
-| **Total** | | | **~$10,946/month** |
+| **Total** | | | **~$10,947/month** |
 
 **Cost Optimization Strategies:**
+- **Use POC mode for development and early demos** - Save 100% of infrastructure costs
+- **Feature flag expensive components** - Disable error_analysis and data_lineage during low-usage periods
 - Use GPT-4o-mini for non-critical tasks (10x cheaper)
 - Implement caching for common queries
 - Batch embeddings generation
 - Use reserved instances for predictable usage
 - Monitor and optimize token usage
+- **Auto-shutdown on cost threshold breach** - Prevent runaway costs
+
+### Cost Comparison: Traditional vs Feature-Flagged Approach
+
+| Phase | Duration | Traditional Cost | Feature-Flagged Cost | Savings |
+|-------|----------|------------------|----------------------|---------|
+| POC Development | 2 weeks | $415 | $0 | $415 (100%) |
+| Integration Dev | 8 weeks | $1,660 | $110 | $1,550 (93%) |
+| Demo Period | 2 weeks | $415 | $36 | $379 (91%) |
+| **Total Pre-Production** | **12 weeks** | **$2,490** | **$146** | **$2,344 (94%)** |
+| Production (Monthly) | Ongoing | $831 | $831 | $0 |
+
+**Key Insight**: Feature-flagged approach saves ~$2,344 during development and demo phase while maintaining full production capabilities.
 
 ---
 
